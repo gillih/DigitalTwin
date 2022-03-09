@@ -29,8 +29,27 @@ namespace DigitalTwin.WebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllMethods",
+                    builder =>
+                    {
+                        builder.WithOrigins("https://localhost:3000")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod().AllowCredentials();
+                    });
+            });
+
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAdB2C"));
+                .AddMicrosoftIdentityWebApi(options =>
+                    {
+                        Configuration.Bind("AzureAdB2C", options);
+
+                        options.TokenValidationParameters.NameClaimType = "name";
+                    },
+                    options => { Configuration.Bind("AzureAdB2C", options); });
+
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -52,6 +71,7 @@ namespace DigitalTwin.WebApi
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseCors("AllowAllMethods");
 
             app.UseAuthentication();
             app.UseAuthorization();
